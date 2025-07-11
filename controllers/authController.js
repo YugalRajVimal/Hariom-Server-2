@@ -3,27 +3,23 @@ import UserModel from "../schemas/user.schema.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import sendMail from "../config/nodeMailer.config.js";
 
 class AuthController {
   userVerify = async (req, res) => {
-    var { email, otp, password, role } = req.body;
+    var { email, otp, password } = req.body;
     if (!email) {
       return res
         .status(400)
         .json({ message: "Something went wrong. Try Again" });
     }
 
-    if (!email || !otp || !password || !role) {
+    if (!email || !otp || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
     email = email.toLowerCase();
     otp = otp.trim();
     password = password.trim();
-    role = role.toLowerCase().trim();
-
-    if (role !== "customer" && role !== "seller") {
-      return res.status(400).json({ message: "Invalid Role" });
-    }
 
     //Check if email is valid
     if (!email.includes("@") || !email.includes(".")) {
@@ -42,25 +38,12 @@ class AuthController {
       if (user.otpExpires < currentTime) {
         return res.status(400).json({ message: "OTP Expired" });
       }
-      if (role === "seller") {
-        user.verifiedSeller = true;
-        user.sellerPassword = await bcrypt.hash(password, 12);
-      }
-      if (role === "customer") {
-        user.verifiedBuyer = true;
-        user.buyerPassword = await bcrypt.hash(password, 12);
-      }
+
+      user.password = await bcrypt.hash(password, 12);
 
       user.otp = null;
       user.otpExpires = null;
-      if (!user.role.includes(role)) {
-        if (role === "seller" && user.verifiedSeller) {
-          user.role.push(role);
-        }
-        if (role === "customer" && user.verifiedBuyer) {
-          user.role.push(role);
-        }
-      }
+
       await user.save();
       res.status(200).json({ message: "Account Verified Successfully" });
     } catch (error) {
@@ -89,7 +72,9 @@ class AuthController {
         return res.status(400).json({ message: "Invalid Password / Email" });
       }
 
-      const isPasswordCorrect = password == user.password;
+      // const isPasswordCorrect = password == user.password;
+      const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
 
       if (!isPasswordCorrect) {
         return res.status(400).json({ message: "Invalid Password / Email" });
@@ -127,20 +112,16 @@ class AuthController {
   };
 
   userResetPassword = async (req, res) => {
-    var { email, role } = req.body;
+    var { email } = req.body;
 
-    if (!email || !role) {
+    if (!email) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     email = email.toLowerCase().trim();
-    role = role.toLowerCase().trim();
 
     if (!email.includes("@") || !email.includes(".")) {
       return res.status(400).json({ message: "Email is invalid" });
-    }
-    if (role !== "customer" && role !== "seller") {
-      return res.status(400).json({ message: "Invalid Role" });
     }
 
     try {
@@ -148,20 +129,12 @@ class AuthController {
       if (!user) {
         return res.status(400).json({ message: "Invalid Email" });
       }
-      if (!user.role.includes(role)) {
-        return res.status(400).json({ message: "Invalid Role" });
-      }
       //Create 6 digit OTP using crypto
       const otp = crypto.randomInt(100000, 999999);
       const otpExpires = new Date(Date.now() + 5 * 60 * 1000); //5 minutes
       user.otp = otp;
       user.otpExpires = otpExpires;
-      if (role === "seller") {
-        user.sellerPassword = null;
-      }
-      if (role === "customer") {
-        user.buyerPassword = null;
-      }
+      user.password = null; // Clear password to force reset
       await user.save();
 
       sendMail(email, "OTP Verification", `Your OTP is ${otp}`);
@@ -169,6 +142,7 @@ class AuthController {
 
       res.status(200).json({ message: "OTP sent to your email" });
     } catch (error) {
+      console.log(error);
       res.status(500).json({ message: "Internal Server Error" });
     }
   };

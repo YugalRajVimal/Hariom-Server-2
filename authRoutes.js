@@ -13,6 +13,14 @@ authRouter.post("/signin", (req, res) => {
   authController.userSignIn(req, res);
 });
 
+authRouter.post("/reset-password", (req, res) => {
+  authController.userResetPassword(req, res);
+});
+
+authRouter.post("/verify", (req, res) => {
+  authController.userVerify(req, res);
+});
+
 authRouter.get("/admin", jwtAuth, (req, res) => {
   authController.userAuth(req, res);
 });

@@ -50,7 +50,7 @@ const allSchema = new mongoose.Schema(
     billDate: { type: Date },
     descHeading: { type: String },
     typeOfGST: { type: String, enum: ["CGST+SGST", "IGST"] },
-    percentageOfGST: { type: Number, enum: [2.5, 5, 6.1, 9, 12, 18, 24] },
+    percentageOfGST: { type: Number },
     billDiscount: { type: Number },
     billDetailsCompleted: { type: Boolean, default: false },
   },
