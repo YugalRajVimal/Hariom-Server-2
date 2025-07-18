@@ -773,7 +773,11 @@ class MainController {
         percentageOfGST,
         discount,
         address,
-        qRate,
+        billAmount,
+        billTotalAmount,
+        clientGSTNumber,
+        amountSummary,
+        billClientName,
       } = req.body;
 
       if (!["CGST+SGST", "IGST"].includes(typeOfGST)) {
@@ -790,20 +794,25 @@ class MainController {
         });
       }
 
+      const updateFields = {
+        billDate,
+        typeOfGST,
+        percentageOfGST,
+        discount,
+        address,
+        billAmount,
+        billTotalAmount,
+        billDetailsCompleted: true,
+      };
+
+      if (descHeading) updateFields.descHeading = descHeading;
+      if (clientGSTNumber) updateFields.clientGSTNumber = clientGSTNumber;
+      if (amountSummary) updateFields.amountSummary = amountSummary;
+      if (billClientName) updateFields.billClientName = billClientName;
+
       const savedDoc = await AllModel.findOneAndUpdate(
         { orderId: Number(orderId) },
-        {
-          $set: {
-            descHeading,
-            billDate,
-            typeOfGST,
-            percentageOfGST,
-            discount,
-            address,
-            qRate,
-            billDetailsCompleted: true,
-          },
-        },
+        { $set: updateFields },
         { new: true, upsert: true, runValidators: true }
       );
       res.status(200).json(savedDoc);

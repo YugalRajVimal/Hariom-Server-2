@@ -53,6 +53,11 @@ const allSchema = new mongoose.Schema(
     percentageOfGST: { type: Number },
     billDiscount: { type: Number },
     billDetailsCompleted: { type: Boolean, default: false },
+    billAmount: { type: Number, default: 0 },
+    billTotalAmount: { type: Number, default: 0 },
+    clientGSTNumber: { type: String },
+    amountSummary: { type: String },
+    billClientName: { type: String },
   },
   {
     timestamps: true,
