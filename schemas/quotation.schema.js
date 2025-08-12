@@ -52,7 +52,7 @@ const quotationSchema = new mongoose.Schema(
       type: Date,
     },
     dateOfInsertion: {
-      type: Date,
+      type: String,
     },
     position: {
       type: String,

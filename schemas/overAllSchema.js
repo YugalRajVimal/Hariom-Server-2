@@ -17,7 +17,7 @@ const allSchema = new mongoose.Schema(
     qWidth: { type: Number, default: 0 },
     hui: { type: String, default: "" },
     remark: { type: String, default: "" },
-    dateOfInsertion: { type: Date },
+    dateOfInsertion: { type: String },
     agencyCode: { type: String, default: "" },
     orderRefId: { type: String, default: "" },
     category: { type: String, default: "" },
