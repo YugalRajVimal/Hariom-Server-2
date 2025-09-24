@@ -619,7 +619,6 @@ class MainController {
 
   addRoQf = async (req, res) => {
     try {
-      const { id } = req.params;
       const { orderId, ...data } = req.body;
 
       const orderIdValue = orderId;
@@ -629,6 +628,7 @@ class MainController {
       if (!orderIdValue) {
         return res.status(400).json({ message: "orderId is required." });
       }
+
       if (orderIdValue === undefined || isNaN(Number(orderIdValue))) {
         console.log(orderIdValue);
         return res.status(400).json({ message: "Valid orderId is required." });
@@ -636,86 +636,35 @@ class MainController {
 
       let updateFields = {};
 
-      if (id === "1") {
-        const existingClient = await ClientPublisherModel.findOne({
-          name: data.clientName,
-          category: "client",
-        });
-        if (!existingClient) {
-          const clientPublisher = new ClientPublisherModel({
-            name: data.clientName,
-            category: "client",
-          });
-          await clientPublisher.save();
-        }
-
-        const existingPublication = await ClientPublisherModel.findOne({
-          name: data.publicationName,
-          category: "publisher",
-        });
-        if (!existingPublication) {
-          const publication = new ClientPublisherModel({
-            name: data.publicationName,
-            category: "publisher",
-          });
-          await publication.save();
-        }
-
-        updateFields = {
-          publicationName: data.publicationName,
-          clientName: data.clientName,
-          noOfAds: data.noOfAds,
-          scheme: data.scheme,
-          position: data.position,
-          hui: data.hui,
-          remark: data.remark,
-          dateOfInsertion: data.dateOfInsertion,
-          commonDetailsCompleted: true,
-          agencyCode: "ins 11141",
-        };
-      } else if (id === "2") {
-        updateFields = {
-          agencyCode: data.agencyCode,
-          orderRefId: data.orderRefId,
-          category: data.category,
-          code: data.code,
-          roRate: data.roRate,
-          roDate: data.roDate,
-          roHeight: data.roHeight,
-          roWidth: data.roWidth,
-          roMultiplyBy: data.roMultiplyBy,
-          percentageOfGST: data.percentageOfGST,
-          agencyCommission1: data.agencyCommission1,
-          agencyCommission2: data.agencyCommission2 || null,
-          agencyCommission3: data.agencyCommission3 || null,
-          totalCommission: data.totalCommission,
-          roAmount: data.roAmount,
-          roTotalAmount: data.roTotalAmount,
-          releasedOrderDetailsCompleted: true,
-        };
-      } else if (id === "3") {
-        updateFields = {
-          address: data.address,
-          invoice: data.invoice,
-          pincode: data.pincode,
-          customerId: data.customerId,
-          phone: data.phone,
-          dueDate: data.dueDate,
-          qHeight: data.qHeight,
-          qWidth: data.qWidth,
-          qMultiplyBy: data.qMultiplyBy,
-          referral: data.referral,
-          qRate: data.qRate,
-          paymentTerms: data.paymentTerms,
-          discount: data.discount,
-          qDate: data.qDate,
-          qAmount: data.qAmount,
-          qTotalAmount: data.qTotalAmount,
-          quotationDetailsCompleted: true,
-        };
-      } else {
-        return res.status(400).json({ message: "Invalid ID parameter" });
-      }
+      updateFields = {
+        publicationName: data.publicationName || null,
+        clientName: data.clientName || null,
+        noOfAds: data.noOfAds || null,
+        scheme: data.scheme || null,
+        position: data.position || null,
+        hui: data.hui || null,
+        remark: data.remark || null,
+        dateOfInsertion: data.dateOfInsertion || null,
+        commonDetailsCompleted: true,
+        agencyCode: "ins 11141" || null,
+        agencyCode: data.agencyCode || null,
+        orderRefId: data.orderRefId || null,
+        category: data.category || null,
+        code: data.code || null,
+        roRate: data.roRate || null,
+        roDate: data.roDate || null,
+        roHeight: data.roHeight || null,
+        roWidth: data.roWidth || null,
+        roMultiplyBy: data.roMultiplyBy || null,
+        percentageOfGST: data.percentageOfGST || null,
+        agencyCommission1: data.agencyCommission1 || null,
+        agencyCommission2: data.agencyCommission2 || null,
+        agencyCommission3: data.agencyCommission3 || null,
+        totalCommission: data.totalCommission || null,
+        roAmount: data.roAmount || null,
+        roTotalAmount: data.roTotalAmount || null,
+        releasedOrderDetailsCompleted: true,
+      };
 
       const existingDoc = await AllModel.findOne({
         orderId: Number(orderIdValue),

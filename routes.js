@@ -86,7 +86,7 @@ apiRouter.get("/get-all-clients-publishers", (req, res) => {
   mainController.getClientAndPublisher(req, res);
 });
 
-apiRouter.post("/add-all-crq/:id", (req, res) => {
+apiRouter.post("/add-all-crq", (req, res) => {
   mainController.addRoQf(req, res);
 });
 
