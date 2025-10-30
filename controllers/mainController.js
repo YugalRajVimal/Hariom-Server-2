@@ -867,10 +867,7 @@ class MainController {
       await newMultiBill.save();
 
       // ✅ 6. (Optional) Update status of all orders to mark bill completion
-      await AllModel.updateMany(
-        { orderId: { $in: orderIds.map((id) => Number(id)) } },
-        { $set: { billDetailsCompleted: true } }
-      );
+   
 
       // ✅ 7. Respond success
       return res.status(200).json({
