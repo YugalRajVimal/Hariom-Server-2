@@ -6,6 +6,7 @@ import Quotation from "../schemas/quotation.schema.js";
 import sendMail from "../config/nodeMailer.config.js";
 import AllModel from "../schemas/overAllSchema.js";
 import ClientPublisherModel from "../schemas/clientPublisher.js";
+import MultiBillModel from "../schemas/multiBillSchema.js";
 
 class MainController {
   //add client name & email
@@ -770,6 +771,164 @@ class MainController {
       res
         .status(500)
         .json({ message: "Internal Server Error", error: error.message });
+    }
+  };
+
+  saveMultiBillDetails = async (req, res) => {
+    try {
+      const {
+        orderIds,
+        descHeading,
+        billDate,
+        typeOfGST,
+        percentageOfGST,
+        discount,
+        address,
+        billAmount,
+        billTotalAmount,
+        clientGSTNumber,
+        amountSummary,
+        billClientName,
+      } = req.body;
+
+      // ✅ 1. Validate core fields
+      if (!Array.isArray(orderIds) || orderIds.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "At least one Order ID is required." });
+      }
+
+      if (!billDate || !typeOfGST || !percentageOfGST || !address) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+
+      if (!Array.isArray(billAmount) || billAmount.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "billAmount must be a non-empty array." });
+      }
+
+      // ✅ 2. Validate GST inputs
+      if (!["CGST+SGST", "IGST"].includes(typeOfGST)) {
+        return res.status(400).json({
+          message: "Invalid typeOfGST. Expected 'CGST+SGST' or 'IGST'.",
+        });
+      }
+
+      if (![2.5, 5, 6.1, 9, 12, 18, 24].includes(Number(percentageOfGST))) {
+        return res.status(400).json({
+          message:
+            "Invalid percentageOfGST. Expected one of: 2.5, 5, 6.1, 9, 12, 18, 24.",
+        });
+      }
+
+      // ✅ 3. Verify all Order IDs exist in AllModel
+      const existingOrders = await AllModel.find({
+        orderId: { $in: orderIds.map((id) => Number(id)) },
+      });
+
+      const foundIds = existingOrders.map((o) => o.orderId.toString());
+      const notFoundIds = orderIds.filter((id) => !foundIds.includes(id));
+
+      if (notFoundIds.length > 0) {
+        return res.status(404).json({
+          message: `RO not found for Order ID(s): ${notFoundIds.join(", ")}`,
+        });
+      }
+
+      // ✅ 4. Compute totals based on array + discount
+      const totalBeforeDiscount = billAmount.reduce((sum, amt) => sum + amt, 0);
+      const discountedTotal = totalBeforeDiscount - (parseFloat(discount) || 0);
+
+      let totalAfterGST = discountedTotal;
+      if (typeOfGST === "CGST+SGST") {
+        totalAfterGST += discountedTotal * ((percentageOfGST * 2) / 100);
+      } else if (typeOfGST === "IGST") {
+        totalAfterGST += discountedTotal * (percentageOfGST / 100);
+      }
+
+      // ✅ 5. Save MultiBill record
+      const newMultiBill = new MultiBillModel({
+        orderIds,
+        descHeading,
+        billDate,
+        typeOfGST,
+        percentageOfGST,
+        discount,
+        address,
+        billAmount,
+        totalBeforeDiscount,
+        billTotalAmount: totalAfterGST,
+        clientGSTNumber,
+        amountSummary,
+        billClientName,
+      });
+
+      await newMultiBill.save();
+
+      // ✅ 6. (Optional) Update status of all orders to mark bill completion
+      await AllModel.updateMany(
+        { orderId: { $in: orderIds.map((id) => Number(id)) } },
+        { $set: { billDetailsCompleted: true } }
+      );
+
+      // ✅ 7. Respond success
+      return res.status(200).json({
+        message: "Multi-order bill saved successfully.",
+        data: {
+          ...newMultiBill.toObject(),
+          computedTotals: {
+            totalBeforeDiscount,
+            totalAfterDiscount: discountedTotal,
+            finalTotalAfterGST: totalAfterGST,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error in saveMultiBillDetails:", error);
+      return res.status(500).json({
+        message: "Internal Server Error",
+        error: error.message,
+      });
+    }
+  };
+
+  getAllMultiBills = async (req, res) => {
+    try {
+      // Fetch all MultiBill records
+      const multiBills = await MultiBillModel.find().sort({ createdAt: -1 });
+
+      // Gather all orderIds from all multiBills, flatten and deduplicate
+      const allOrderIds = [...new Set(multiBills.flatMap(mb => mb.orderIds))];
+
+      // Fetch only the required fields for matching orders
+      const allOrders = await AllModel.find(
+        { orderId: { $in: allOrderIds.map(id => Number(id)) } },
+        'orderId roHeight roWidth publicationName dateOfInsertion category hui'
+      );
+
+      // Prepare a Map for quick lookup by orderId
+      const orderIdToOrder = {};
+      allOrders.forEach(order => {
+        orderIdToOrder[String(order.orderId)] = order;
+      });
+
+      // Attach orders info to each MultiBill, respecting order
+      const result = multiBills.map(mb => ({
+        ...mb.toObject(),
+        orders: mb.orderIds.map(orderId => orderIdToOrder[String(orderId)] || null)
+      }));
+
+      res.status(200).json({
+        message: "All Multi Bill records fetched successfully.",
+        data: result,
+      });
+    } catch (error) {
+      console.error("Error in getAllMultiBills:", error);
+      res.status(500).json({
+        message: "Failed to fetch Multi Bill records.",
+        error: error.message,
+      });
     }
   };
 }

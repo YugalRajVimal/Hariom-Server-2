@@ -98,4 +98,12 @@ apiRouter.post("/save-bill", (req, res) => {
   mainController.saveBillDetails(req, res);
 });
 
+apiRouter.post("/save-multi-bill", (req, res) => {
+  mainController.saveMultiBillDetails(req, res);
+});
+
+apiRouter.get("/get-all-multi-bill", (req, res) => {
+  mainController.getAllMultiBills(req, res);
+});
+
 export default apiRouter;
