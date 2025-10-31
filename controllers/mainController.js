@@ -685,6 +685,7 @@ class MainController {
           orderId: Number(orderIdValue),
         });
         savedDoc = await newDoc.save();
+
         await UserModel.findOneAndUpdate(
           {},
           { $inc: { orderSeries: 1 } },
@@ -822,6 +823,13 @@ class MainController {
         });
       }
 
+      // Get the current multiInvoiceSeries value for invoiceId generation
+      const user = await UserModel.findOne({}, "multiInvoiceSeries");
+      const invoiceId =
+        user && typeof user.multiInvoiceSeries === "number"
+          ? user.multiInvoiceSeries
+          : 1;
+
       // ✅ 3. Verify all Order IDs exist in AllModel
       const existingOrders = await AllModel.find({
         orderId: { $in: orderIds.map((id) => Number(id)) },
@@ -849,6 +857,7 @@ class MainController {
 
       // ✅ 5. Save MultiBill record
       const newMultiBill = new MultiBillModel({
+        invoiceId,
         orderIds,
         descHeading,
         billDate,
@@ -866,8 +875,13 @@ class MainController {
 
       await newMultiBill.save();
 
+      await UserModel.findOneAndUpdate(
+        {},
+        { $inc: { multiInvoiceSeries: 1 } },
+        { new: true }
+      ).select("multiInvoiceSeries");
+
       // ✅ 6. (Optional) Update status of all orders to mark bill completion
-   
 
       // ✅ 7. Respond success
       return res.status(200).json({
@@ -896,24 +910,26 @@ class MainController {
       const multiBills = await MultiBillModel.find().sort({ createdAt: -1 });
 
       // Gather all orderIds from all multiBills, flatten and deduplicate
-      const allOrderIds = [...new Set(multiBills.flatMap(mb => mb.orderIds))];
+      const allOrderIds = [...new Set(multiBills.flatMap((mb) => mb.orderIds))];
 
       // Fetch only the required fields for matching orders
       const allOrders = await AllModel.find(
-        { orderId: { $in: allOrderIds.map(id => Number(id)) } },
-        'orderId roHeight roWidth publicationName dateOfInsertion category hui'
+        { orderId: { $in: allOrderIds.map((id) => Number(id)) } },
+        "orderId roHeight roWidth publicationName dateOfInsertion category hui"
       );
 
       // Prepare a Map for quick lookup by orderId
       const orderIdToOrder = {};
-      allOrders.forEach(order => {
+      allOrders.forEach((order) => {
         orderIdToOrder[String(order.orderId)] = order;
       });
 
       // Attach orders info to each MultiBill, respecting order
-      const result = multiBills.map(mb => ({
+      const result = multiBills.map((mb) => ({
         ...mb.toObject(),
-        orders: mb.orderIds.map(orderId => orderIdToOrder[String(orderId)] || null)
+        orders: mb.orderIds.map(
+          (orderId) => orderIdToOrder[String(orderId)] || null
+        ),
       }));
 
       res.status(200).json({

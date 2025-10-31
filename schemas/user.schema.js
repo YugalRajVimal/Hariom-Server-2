@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema({
   orderSeries: {
     type: Number,
   },
+  multiInvoiceSeries: {
+    type: Number,
+  },
 });
 
 const UserModel = mongoose.model("User", userSchema);

@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const multiBillSchema = new mongoose.Schema(
   {
+    invoiceId: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
     orderIds: {
       type: [String],
       required: true,
