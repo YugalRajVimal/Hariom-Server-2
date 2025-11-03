@@ -745,7 +745,15 @@ class MainController {
         });
       }
 
+      // Get the current multiInvoiceSeries value for invoiceId generation
+      const user = await UserModel.findOne({}, "multiInvoiceSeries");
+      const invoiceId =
+        user && typeof user.multiInvoiceSeries === "number"
+          ? user.multiInvoiceSeries
+          : 1;
+
       const updateFields = {
+        invoiceId,
         billDate,
         typeOfGST,
         percentageOfGST,
@@ -766,6 +774,13 @@ class MainController {
         { $set: updateFields },
         { new: true, upsert: true, runValidators: true }
       );
+
+      await UserModel.findOneAndUpdate(
+        {},
+        { $inc: { multiInvoiceSeries: 1 } },
+        { new: true }
+      ).select("multiInvoiceSeries");
+
       res.status(200).json(savedDoc);
     } catch (error) {
       console.error("Error in saveBillDetails:", error);

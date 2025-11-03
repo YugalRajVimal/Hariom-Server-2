@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const allSchema = new mongoose.Schema(
   {
+    invoiceId: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
     orderId: { type: Number, unique: true, required: true, default: "" },
     publicationName: { type: String, default: "" },
     clientName: { type: String, default: "" },
