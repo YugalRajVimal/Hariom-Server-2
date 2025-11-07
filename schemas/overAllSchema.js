@@ -4,7 +4,6 @@ const allSchema = new mongoose.Schema(
   {
     invoiceId: {
       type: Number,
-      required: true,
       unique: true,
     },
     orderId: { type: Number, unique: true, required: true, default: "" },
